@@ -1,37 +1,108 @@
 # tsaudit
 
-[![version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md) [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![checks](https://github.com/r0charm/tsaudit/actions/workflows/test.yml/badge.svg)](https://github.com/r0charm/tsaudit/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/@rocharm/tsaudit)](https://www.npmjs.com/package/@rocharm/tsaudit) [![node](https://img.shields.io/node/v/@rocharm/tsaudit)](package.json) [![license](https://img.shields.io/npm/l/@rocharm/tsaudit)](LICENSE)
 
-Checks a TypeScript repo against strict coding standards and AI-slop rules, without installing anything in it. It runs each tool and prints the tool's own output, nothing else.
+Audit any TypeScript repo against strict type-safety and anti-AI-slop rules with one command, without adding config or dependencies to it.
 
-## Run it
-
-In any TypeScript repo whose dependencies are installed (the type-aware rules read its types), with Node 22.13 or later:
-
-```
+```bash
 npx @rocharm/tsaudit .
 ```
 
-Or install it once with `npm i -g @rocharm/tsaudit`, then `tsaudit .`. To run a checkout instead: `git clone https://github.com/r0charm/tsaudit.git && cd tsaudit && npm install && npm link`.
+- **Zero setup**: nothing is installed in or written to the audited repo.
+- **Two tools**: `tsc` (type errors, every project in a monorepo) and `oxlint` (strict, type-aware rules plus [anti-slop](#oxlint) rules).
+- **Raw output**: each tool's own output under a `== tool ==` header, nothing reformatted.
+- **Agent mode**: `--agent` prints one line per finding with a fix hint, ready to hand to a coding agent.
 
-- Nothing is installed in the audited repo.
-- Tools, in order, each under a `== tool ==` header:
-  - `tsc`: the compiler's type errors, once per project: every `tsconfig.json` under the path, except a base the others extend; a solution file (`"files": []`) stands for the projects it references. Each uses the nearest TypeScript the project installs, else the pinned one, and writes no build output (emit off; references are checked from source, no build needed). Its throwaway config sits next to the project's tsconfig, hidden, for that run only, so everything tsc resolves from the config's folder (the default include, `${configDir}`, `types`, `typeRoots`) holds as it does for the project. Says it was skipped when there is no `tsconfig.json`.
-  - `oxlint`: strict TypeScript rules plus the anti-slop rules (`oxlintrc.json`), grouped by file (oxlint's `stylish`).
-- `--agent`: output for a model to act on: oxlint one line per finding with its fix hint (`file:line:column: error rule: message help: ...`), tsc one line per error. Pass `-f` with `--only oxlint` for any other oxlint format.
-- One tool, with its own options: `tsaudit . --only oxlint -f json`.
-- Exit code: the worst across tools, 0 clean, 1 findings, 2 setup error.
-- oxlint skips test code (`*.test.ts`, `*.spec.ts`, and `__tests__/`, `__mocks__/`, `test/`, `tests/`, `e2e/` folders; add `--tests` to lint them), agent folders (`.claude`, `.cursor`, `.codex`...), `node_modules`, `dist` and similar.
+## Installation
 
-## Versions
+Requires Node 22.13+, and the audited repo's dependencies installed (type-aware rules read its types).
 
-Each release is a `vX.Y.Z` tag on `main`. Minor can add findings (a rule on, a tool added, a tool version bump), patch only removes wrong ones, major breaks a flag, an exit code or the output format.
+Run it with `npx` as above, or install it globally:
 
-To release: bump `version` in `package.json` and in the README badge (the canary fails if they differ), merge, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+```bash
+npm i -g @rocharm/tsaudit
+```
 
-## Add a tool
+From a clone (to edit the rules): see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-1. Add it to `package.json` at an exact version, and to the Dependabot group.
-2. Write `tools/<name>.mjs`: `name`, `commands(ctx)` returning a list of `{ bin, args, env?, label?, files? }` (empty when it does not apply; `files` maps a path to its text, written just before the run and removed after), `skip` saying why in that case, and `status(code)` mapping its exit code to 0, 1 or 2.
-3. Register it in `TOOLS` in `bin/tsaudit.mjs`.
-4. Give the fixture something it must flag, and check it in `fixture/test.mjs`.
+## Usage
+
+```
+tsaudit [path] [--tests] [--agent] [--only <tool> [tool options]]
+```
+
+| Option | Effect |
+| --- | --- |
+| `path` | Directory to audit. Default `.` |
+| `--agent` | Compact output for an LLM: one line per finding, with oxlint's fix hint |
+| `--tests` | Also lint test code (skipped by default) |
+| `--only <tool>` | Run one tool (`tsc` or `oxlint`); anything after is passed to it, e.g. `--only oxlint -f json` |
+| `-h`, `--help` | Show usage |
+| `-V`, `--version` | Show version |
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Clean |
+| `1` | Findings |
+| `2` | Setup error |
+
+The worst code across tools wins, so it works as a CI gate:
+
+```yaml
+- run: npm ci
+- run: npx @rocharm/tsaudit .
+```
+
+## Output
+
+Default:
+
+```
+== tsc (tsconfig.json, typescript 7.0.2) ==
+src/type-error.ts(2,14): error TS2322: Type 'string' is not assignable to type 'number'.
+== oxlint ==
+
+src/sloppy.ts
+  13:12  error  Unexpected `any`. Specify a different type.  typescript(no-explicit-any)
+  18:3   error  Promises must be awaited, add void operator to ignore.  typescript(no-floating-promises)
+```
+
+`--agent`:
+
+```
+src/sloppy.ts:13:12: error typescript(no-explicit-any): Unexpected `any`. Specify a different type. help: Use `unknown` instead, ...
+```
+
+## What it checks
+
+### tsc
+
+- Runs once per `tsconfig.json` under the path. Configs only extended by others are skipped; a solution file (`"files": []`) stands for the projects it references.
+- Uses the project's own TypeScript if installed, else the bundled one.
+- No emit, no build needed for project references.
+- Skipped, with a note, when there is no `tsconfig.json`.
+
+### oxlint
+
+Config: [`oxlintrc.json`](oxlintrc.json). Highlights:
+
+- **Type safety**: no `any`, no non-null `!`, no unsafe assertions/assignments/calls/returns, strict boolean expressions, exhaustive `switch`, no floating or misused promises.
+- **Complexity limits**: cyclomatic complexity 15, 50 lines per function, 300 lines per file, 4 params.
+- **Anti-slop** (vendored from [anti-slop](vendor/anti-slop)): patterns typical of generated code, e.g. `filter().map()` chains, accumulator copies in `reduce`, widen-then-assert, dictionaries typed `Record<string, unknown>`, Jest/Vitest module mocking, runtime `typeof` checks instead of decoding at the boundary.
+
+Ignored by default: `node_modules`, `dist` and similar build output, agent folders (`.claude`, `.cursor`, `.codex`, ...), and test code (`*.test.ts`, `*.spec.ts`, `__tests__/`, `__mocks__/`, `test/`, `tests/`, `e2e/`). Use `--tests` to include tests.
+
+## What it does not do
+
+- Change the audited repo: it only reports; fixes are yours or your agent's (`--agent`).
+- Read your repo's own lint config: the rules are this package's `oxlintrc.json`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues: [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE)
