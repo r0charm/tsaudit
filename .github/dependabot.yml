@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # @oxlint/plugins must match oxlint exactly: they move in one PR, and the canary checks the combination.
+      lint-tools:
+        patterns: ["oxlint", "oxlint-tsgolint", "@oxlint/plugins", "typescript"]

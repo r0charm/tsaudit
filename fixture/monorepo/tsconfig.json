@@ -1,0 +1,7 @@
+{
+  // A base the packages extend, not a project: tsc must not run it.
+  // Its types live in the workspace's node_modules/@types, as @types/node does: each package must find them.
+  // Its include is written for its extenders: ${configDir} is the folder of the package that extends it.
+  "compilerOptions": { "strict": true, "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext", "types": ["env", "envpkg/globals"] },
+  "include": ["${configDir}/src"],
+}
