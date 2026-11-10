@@ -1,6 +1,6 @@
 # tsaudit
 
-[![checks](https://github.com/r0charm/tsaudit/actions/workflows/test.yml/badge.svg)](https://github.com/r0charm/tsaudit/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/@rocharm/tsaudit)](https://www.npmjs.com/package/@rocharm/tsaudit) [![node](https://img.shields.io/node/v/@rocharm/tsaudit)](package.json) [![license](https://img.shields.io/npm/l/@rocharm/tsaudit)](LICENSE)
+[![checks](https://img.shields.io/github/actions/workflow/status/r0charm/tsaudit/test.yml?branch=main&label=checks)](https://github.com/r0charm/tsaudit/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/@rocharm/tsaudit)](https://www.npmjs.com/package/@rocharm/tsaudit) [![node](https://img.shields.io/node/v/@rocharm/tsaudit)](package.json) [![license](https://img.shields.io/github/license/r0charm/tsaudit)](LICENSE)
 
 Audit any TypeScript repo against strict type-safety and anti-AI-slop rules with one command, without adding config or dependencies to it.
 
