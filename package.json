@@ -1,0 +1,45 @@
+{
+  "name": "@rocharm/tsaudit",
+  "version": "0.5.0",
+  "description": "Audit a TypeScript repo with tsc and strict, anti-slop oxlint rules, without installing anything in it.",
+  "keywords": [
+    "typescript",
+    "lint",
+    "oxlint",
+    "tsc",
+    "audit"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/r0charm/tsaudit.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "tsaudit": "bin/tsaudit.mjs"
+  },
+  "files": [
+    "bin",
+    "tools",
+    "build",
+    "oxlintrc.json",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "prepare": "node --no-warnings scripts/build.mjs",
+    "pretest": "node --no-warnings scripts/build.mjs",
+    "test": "node fixture/test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.92.0",
+    "oxlint": "1.92.0",
+    "oxlint-tsgolint": "7.0.2006",
+    "typescript": "7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

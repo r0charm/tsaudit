@@ -1,0 +1,18 @@
+name: canary
+on: [push, pull_request]
+jobs:
+  fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      # The published package, installed as npx installs it: the tools beside tsaudit, not inside it.
+      - run: npm pack --pack-destination "$RUNNER_TEMP"
+      - run: cd "$RUNNER_TEMP" && echo '{}' > package.json && npm i ./rocharm-tsaudit-*.tgz
+      - run: |
+          out=$("$RUNNER_TEMP/node_modules/.bin/tsaudit" fixture --agent || true)
+          grep -q 'TS2322' <<<"$out" && grep -q 'anti-slop(no-unsafe-dictionary-type)' <<<"$out"
