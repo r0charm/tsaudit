@@ -1,6 +1,6 @@
 # Changelog
 
-Each release is a `vX.Y.Z` git tag on `main`. Versions follow [SemVer](https://semver.org), read for a tool whose output is findings:
+Each release is a `vX.Y.Z` git tag on `main`, with its GitHub release. Neither is made by hand: when a version bump lands on `main`, `.github/workflows/release.yml` creates both on that commit. Publish to npm from the same commit. Versions follow [SemVer](https://semver.org), read for a tool whose output is findings:
 
 - **Major**: a change that breaks a caller: a CLI flag, an exit code, or the output contract (`--agent`'s line format, the `== tool ==` headers).
 - **Minor**: a change that can add findings: a rule turned on, a tool added, a tool or TypeScript version bump.

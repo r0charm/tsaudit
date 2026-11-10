@@ -1,0 +1,54 @@
+name: release
+# Keeps GitHub's tags and releases in step with package.json on main:
+# - a tag whose commit is not on main (left from rewritten history) is
+#   deleted, with its release;
+# - v<version> is created, with its release, on the commit that set that
+#   version, and moved there if it points anywhere else.
+# Tags and releases made here use the repo's own token, so no one has to
+# create them by hand.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: release
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Drop tags that are not on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --tags --force
+          for tag in $(git tag); do
+            if ! git merge-base --is-ancestor "$tag^{commit}" origin/main; then
+              echo "dropping $tag: its commit is not on main"
+              gh release delete "$tag" --yes 2>/dev/null || true
+              git push origin ":refs/tags/$tag"
+            fi
+          done
+      - name: Release the version in package.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          tag="v$version"
+          # The commit that set this version: the oldest on main whose
+          # package.json carries it.
+          sha=$(git log --reverse --format=%H -G"\"version\": \"$version\"" -- package.json | head -1)
+          sha=${sha:-$GITHUB_SHA}
+          current=$(git rev-parse -q --verify "refs/tags/$tag^{commit}" || true)
+          if [ "$current" = "$sha" ] && gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already released at $sha"; exit 0
+          fi
+          if [ -n "$current" ]; then
+            echo "moving $tag from $current to $sha"
+            gh release delete "$tag" --yes 2>/dev/null || true
+            git push origin ":refs/tags/$tag"
+          fi
+          gh release create "$tag" --target "$sha" --title "$tag" --generate-notes --latest
