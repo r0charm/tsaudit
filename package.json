@@ -1,6 +1,6 @@
 {
   "name": "@rocharm/tsaudit",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Audit a TypeScript repo with tsc and strict, anti-slop oxlint rules, without installing anything in it.",
   "keywords": [
     "typescript",

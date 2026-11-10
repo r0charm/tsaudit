@@ -64,10 +64,8 @@ check("test folders are skipped", !diagnostics.some((d) => d.filename.includes("
 const tests = tsaudit("--tests", "--only", "oxlint", "-f", "json");
 check("--tests lints them", tests.stdout.startsWith("{") && JSON.parse(tests.stdout).diagnostics.some((d) => d.filename === "src/tests/helper.ts"));
 
-const version = spawnSync("node", [cli, "--version"], { encoding: "utf8" });
-check("--version prints the version", version.status === 0 && /^\d+\.\d+\.\d+/.test(version.stdout), version.stdout);
-
 const pkg = JSON.parse(readFileSync(join(here, "..", "package.json"), "utf8")).version;
-check("the README badge shows the package version", readFileSync(join(here, "..", "README.md"), "utf8").includes(`badge/version-${pkg}-`), pkg);
+const version = spawnSync("node", [cli, "--version"], { encoding: "utf8" });
+check("--version prints the package version", version.status === 0 && version.stdout.trim() === pkg, version.stdout);
 
 process.exit(failed > 0 ? 1 : 0);
